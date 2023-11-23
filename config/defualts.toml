@@ -1,0 +1,10 @@
+[server]
+address = "0.0.0.0:8080"
+read_time_out = 10
+write_time_out = 20
+
+[redis]
+redis_url = "redisdb:6379"
+redis_cert = ""
+redis_idle_timeout = 4
+redis_db_num = 0
