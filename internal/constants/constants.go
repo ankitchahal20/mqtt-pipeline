@@ -5,4 +5,6 @@ const (
 	Version       = "v1"
 	Get           = "get"
 	TransactionID = "transaction-id"
+	//Topic  = "speed_topic"
+	Publish = "publish"
 )

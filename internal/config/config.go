@@ -16,6 +16,7 @@ var (
 type GlobalConfig struct {
 	Server      Server `toml:"server"`
 	RedisConfig Redis  `toml:"redis"`
+	MQTTConfig MQTT `toml:"mqtt"`
 }
 
 // Redis Configuration
@@ -31,6 +32,11 @@ type Server struct {
 	Address      string `toml:"address"`
 	ReadTimeOut  int    `toml:"read_time_out"`
 	WriteTimeOut int    `toml:"write_time_out"`
+}
+
+type MQTT struct {
+	MQTTBroker string `toml:"mqtt_broker"`
+	Topic string `toml:"topic"`
 }
 
 // Setter method for GlobalConfig
