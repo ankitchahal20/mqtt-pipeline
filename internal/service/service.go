@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
+	"runtime"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -19,9 +20,10 @@ import (
 	"github.com/mqtt-pipeline/internal/utils"
 )
 
-var mqttPipelineClient *MQTTPipelineService
-
-var secretKey = []byte("SOME-SECRET-KEY-WHICH-NOT_SECRET-ANY-MORE")
+var (
+	mqttPipelineClient *MQTTPipelineService
+	secretKey          = []byte("SOME-SECRET-KEY-WHICH-NOT_SECRET-ANY-MORE")
+)
 
 type MQTTPipelineService struct {
 	redisClient *redis.Client
@@ -46,13 +48,11 @@ func GenerateToken() func(ctx *gin.Context) {
 				return
 			}
 
-			
 			_, parseErr := mail.ParseAddress(emailInfo.Email)
 			if parseErr != nil {
 				context.JSON(http.StatusBadRequest, gin.H{"invalid email found": parseErr.Error()})
 				return
 			}
-			
 
 			token, err := mqttPipelineClient.generateToken(context, emailInfo)
 			if err != nil {
@@ -78,14 +78,13 @@ func (service *MQTTPipelineService) generateToken(ctx *gin.Context, emailInfo mo
 	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
 		return "", &mqtterror.MQTTPipelineError{
-			Code: http.StatusInternalServerError,
+			Code:    http.StatusInternalServerError,
 			Message: fmt.Sprintf("Unable to generate the token, err %v", err),
-			Trace: ctx.Request.Header.Get(constants.TransactionID),
+			Trace:   ctx.Request.Header.Get(constants.TransactionID),
 		}
 	}
 	return tokenString, nil
 }
-
 
 func Publish() func(ctx *gin.Context) {
 	return func(context *gin.Context) {
@@ -107,6 +106,7 @@ func Publish() func(ctx *gin.Context) {
 			}
 
 			err := mqttPipelineClient.publish(context, speedInfo)
+			fmt.Println("runtime.NumGoroutine() : ", runtime.NumGoroutine())
 			if err != nil {
 				utils.Logger.Error("unable to generate a token for the given email")
 				context.Writer.WriteHeader(err.Code)
@@ -121,17 +121,61 @@ func Publish() func(ctx *gin.Context) {
 	}
 }
 
-func (service *MQTTPipelineService) publish(ctx *gin.Context, speedInfo models.SpeedData) (*mqtterror.MQTTPipelineError) {
+func (service *MQTTPipelineService) publish(ctx *gin.Context, speedInfo models.SpeedData) *mqtterror.MQTTPipelineError {
+	txid := ctx.Request.Header.Get(constants.TransactionID)
 	payload, _ := json.Marshal(speedInfo)
 	cfg := config.GetConfig()
-
 	if token := utils.MQTTClient.Publish(cfg.MQTTConfig.Topic, 0, false, payload); token.Wait() && token.Error() != nil {
-		fmt.Println("Error publishing to MQTT:", token.Error())
+		utils.Logger.Error(fmt.Sprintf("unable to publish the message on the topic, txid : %v", txid))
 		return &mqtterror.MQTTPipelineError{
-			Code: http.StatusInternalServerError,
+			Code:    http.StatusInternalServerError,
 			Message: fmt.Sprintf("Unable to send the speed data on the topic, err %v", token.Error()),
-			Trace: ctx.Request.Header.Get(constants.TransactionID),
+			Trace:   txid,
 		}
 	}
+	utils.Logger.Info(fmt.Sprintf("succesfully publish the message on the topic, txid : %v", txid))
+	go service.subscribeToMQTT(ctx)
+
+	return nil
+}
+
+func (service *MQTTPipelineService) subscribeToMQTT(ctx *gin.Context) *mqtterror.MQTTPipelineError {
+	//ctxx := context.Background()
+	txid := ctx.Request.Header.Get(constants.TransactionID)
+
+	// blocking call
+	speed := <-utils.SpeedChannel
+	// Save the latest speed data to Redis
+	utils.Logger.Info(fmt.Sprintf("data successfully fetched from the topic, txid : %v", txid))
+	err := service.storeInRedis(ctx, speed)
+	if err != nil {
+		utils.Logger.Error(fmt.Sprintf("unable to store data into redis, txid : %v", txid))
+		return err
+	}
+	return nil
+}
+
+func (service *MQTTPipelineService) storeInRedis(ctx *gin.Context, speed int) *mqtterror.MQTTPipelineError {
+	// Store the speed data in Redis
+	txid := ctx.Request.Header.Get(constants.TransactionID)
+	data := map[string]interface{}{"speed": speed}
+	val, err := json.Marshal(data)
+	if err != nil {
+		return &mqtterror.MQTTPipelineError{
+			Code:    http.StatusInternalServerError,
+			Message: fmt.Sprintf("Unable to send the speed data on the topic, err %v", err.Error()),
+			Trace:   txid,
+		}
+	}
+
+	err = service.redisClient.Set("latest_speed_data", val, 0).Err()
+	if err != nil {
+		return &mqtterror.MQTTPipelineError{
+			Code:    http.StatusInternalServerError,
+			Message: fmt.Sprintf("Unable to send the speed data on the topic, err %v", err.Error()),
+			Trace:   txid,
+		}
+	}
+	utils.Logger.Info(fmt.Sprintf("data stored successfully in redis , txid : %v", txid))
 	return nil
 }

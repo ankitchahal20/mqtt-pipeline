@@ -18,7 +18,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to initialize global config")
 	}
-
+	utils.InitMQTT()
+	utils.InitMQTTSubscribe()
 	utils.Logger.Info("main started")
 
 	// Initialize Redis

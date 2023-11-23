@@ -16,7 +16,7 @@ var (
 type GlobalConfig struct {
 	Server      Server `toml:"server"`
 	RedisConfig Redis  `toml:"redis"`
-	MQTTConfig MQTT `toml:"mqtt"`
+	MQTTConfig  MQTT   `toml:"mqtt"`
 }
 
 // Redis Configuration
@@ -36,7 +36,7 @@ type Server struct {
 
 type MQTT struct {
 	MQTTBroker string `toml:"mqtt_broker"`
-	Topic string `toml:"topic"`
+	Topic      string `toml:"topic"`
 }
 
 // Setter method for GlobalConfig
