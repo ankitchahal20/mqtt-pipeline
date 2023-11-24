@@ -7,4 +7,10 @@ const (
 	TransactionID = "transaction-id"
 	//Topic  = "speed_topic"
 	Publish = "publish"
+
+	InvalidBody = "invalid body"
+)
+
+var (
+	SecretKey          = []byte("SOME-SECRET-KEY-WHICH-IS-NOT_SECRET-ANY-MORE")
 )

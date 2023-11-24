@@ -2,10 +2,8 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"net/mail"
 	"runtime"
 	"time"
 
@@ -22,7 +20,6 @@ import (
 
 var (
 	mqttPipelineClient *MQTTPipelineService
-	secretKey          = []byte("SOME-SECRET-KEY-WHICH-IS-NOT_SECRET-ANY-MORE")
 )
 
 type MQTTPipelineService struct {
@@ -41,18 +38,6 @@ func GenerateToken() func(ctx *gin.Context) {
 		if err := context.ShouldBindBodyWith(&emailInfo, binding.JSON); err == nil {
 			txid := context.Request.Header.Get(constants.TransactionID)
 			utils.Logger.Info(fmt.Sprintf("received request for generating token, txid : %v", txid))
-			// Validate request body
-			if emailInfo.Email == "" {
-				err := errors.New("invalid request received")
-				context.JSON(http.StatusBadRequest, gin.H{"email not found": err.Error()})
-				return
-			}
-
-			_, parseErr := mail.ParseAddress(emailInfo.Email)
-			if parseErr != nil {
-				context.JSON(http.StatusBadRequest, gin.H{"invalid email found": parseErr.Error()})
-				return
-			}
 
 			token, err := mqttPipelineClient.generateToken(context, emailInfo)
 			if err != nil {
@@ -75,7 +60,7 @@ func (service *MQTTPipelineService) generateToken(ctx *gin.Context, emailInfo mo
 	claims["email"] = emailInfo.Email
 	claims["exp"] = time.Now().Add(time.Minute * 5).Unix()
 
-	tokenString, err := token.SignedString(secretKey)
+	tokenString, err := token.SignedString(constants.SecretKey)
 	if err != nil {
 		return "", &mqtterror.MQTTPipelineError{
 			Code:    http.StatusInternalServerError,
@@ -92,18 +77,6 @@ func Publish() func(ctx *gin.Context) {
 		if err := context.ShouldBindBodyWith(&speedInfo, binding.JSON); err == nil {
 			txid := context.Request.Header.Get(constants.TransactionID)
 			utils.Logger.Info(fmt.Sprintf("received request for publish the speed on mqtt, txid : %v", txid))
-			// Validate request body
-			if speedInfo.Speed == nil {
-				err := errors.New("invalid request received")
-				context.JSON(http.StatusBadRequest, gin.H{"email not found": err.Error()})
-				return
-			}
-
-			if *speedInfo.Speed < 0 || *speedInfo.Speed > 100 {
-				err := errors.New("speed should be range between 0 and 100")
-				context.JSON(http.StatusBadRequest, gin.H{"invalid speed": err.Error()})
-				return
-			}
 
 			err := mqttPipelineClient.publish(context, speedInfo)
 			fmt.Println("runtime.NumGoroutine() : ", runtime.NumGoroutine())

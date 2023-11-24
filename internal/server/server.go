@@ -12,25 +12,27 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mqtt-pipeline/internal/constants"
+	"github.com/mqtt-pipeline/internal/middleware"
 	"github.com/mqtt-pipeline/internal/service"
 )
 
 func registerGetTokenEndPoints(handler gin.IRoutes) {
-	handler.POST(constants.ForwardSlash+strings.Join([]string{}, constants.ForwardSlash), service.GenerateToken())
+	handler.POST(constants.ForwardSlash+strings.Join([]string{}, constants.ForwardSlash), middleware.ValidateGetTokenEndointRequest(), service.GenerateToken())
 }
 
 func registerPublishEndpointPoints(handler gin.IRoutes) {
-	handler.POST(constants.ForwardSlash+strings.Join([]string{constants.Publish}, constants.ForwardSlash), service.Publish())
+	handler.POST(constants.ForwardSlash+strings.Join([]string{constants.Publish}, constants.ForwardSlash), middleware.Authorization(), middleware.ValidatePublishEndpointRequest(), service.Publish())
 }
 
 func registerSpeedDataEndPoints(handler gin.IRoutes) {
-	handler.GET(constants.ForwardSlash, service.GetSpeedData())
+	handler.GET(constants.ForwardSlash, middleware.Authorization(),  service.GetSpeedData())
 }
 
 func Start() {
 	plainHandler := gin.New()
 
-	mqttPipelineHandler := plainHandler.Group(constants.ForwardSlash + constants.Version).Use(gin.Recovery())
+	mqttPipelineHandler := plainHandler.Group(constants.ForwardSlash + constants.Version).Use(gin.Recovery()).
+		Use(middleware.SetTransactionId())
 	registerGetTokenEndPoints(mqttPipelineHandler)
 	registerPublishEndpointPoints(mqttPipelineHandler)
 	registerSpeedDataEndPoints(mqttPipelineHandler)
