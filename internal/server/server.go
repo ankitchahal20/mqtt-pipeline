@@ -23,12 +23,17 @@ func registerPublishEndpointPoints(handler gin.IRoutes) {
 	handler.POST(constants.ForwardSlash+strings.Join([]string{constants.Publish}, constants.ForwardSlash), service.Publish())
 }
 
+func registerSpeedDataEndPoints(handler gin.IRoutes) {
+	handler.GET(constants.ForwardSlash, service.GetSpeedData())
+}
+
 func Start() {
 	plainHandler := gin.New()
 
 	mqttPipelineHandler := plainHandler.Group(constants.ForwardSlash + constants.Version).Use(gin.Recovery())
 	registerGetTokenEndPoints(mqttPipelineHandler)
 	registerPublishEndpointPoints(mqttPipelineHandler)
+	registerSpeedDataEndPoints(mqttPipelineHandler)
 
 	srv := &http.Server{
 		Handler:      plainHandler,
