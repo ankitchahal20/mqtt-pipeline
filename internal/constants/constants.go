@@ -13,5 +13,5 @@ const (
 )
 
 var (
-	SecretKey          = []byte("SOME-SECRET-KEY-WHICH-IS-NOT_SECRET-ANY-MORE")
+	SecretKey = []byte("SOME-SECRET-KEY-WHICH-IS-NOT_SECRET-ANY-MORE")
 )

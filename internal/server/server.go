@@ -25,7 +25,7 @@ func registerPublishEndpointPoints(handler gin.IRoutes) {
 }
 
 func registerSpeedDataEndPoints(handler gin.IRoutes) {
-	handler.GET(constants.ForwardSlash, middleware.Authorization(),  service.GetSpeedData())
+	handler.GET(constants.ForwardSlash, middleware.Authorization(), service.GetSpeedData())
 }
 
 func Start() {

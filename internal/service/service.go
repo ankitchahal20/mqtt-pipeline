@@ -168,10 +168,10 @@ func GetSpeedData() func(ctx *gin.Context) {
 					"latest_speed": "No speed data found in redis",
 				})
 			} else {
-			ctx.JSON(http.StatusOK, map[string]int{
-				"latest_speed": *speed,
-			})
-		}
+				ctx.JSON(http.StatusOK, map[string]int{
+					"latest_speed": *speed,
+				})
+			}
 		}
 	}
 }
@@ -179,27 +179,27 @@ func GetSpeedData() func(ctx *gin.Context) {
 func (service *MQTTPipelineService) getSpeedData(ctx *gin.Context) (*int, *mqtterror.MQTTPipelineError) {
 	txid := ctx.Request.Header.Get(constants.TransactionID)
 	val, err := service.redisClient.Get("latest_speed_data").Result()
-		if err == redis.Nil {
-			utils.Logger.Info(fmt.Sprintf("no stored in stored in redis , txid : %v", txid))
-			return nil, nil
+	if err == redis.Nil {
+		utils.Logger.Info(fmt.Sprintf("no stored in stored in redis , txid : %v", txid))
+		return nil, nil
+	}
+	if err != nil {
+		utils.Logger.Error(fmt.Sprintf("unable to fetch latest speed data from redis , txid : %v", txid))
+		return nil, &mqtterror.MQTTPipelineError{
+			Code:    http.StatusInternalServerError,
+			Message: fmt.Sprintf("Unable to fetch latest speed data from redis, err %v", err.Error()),
+			Trace:   txid,
 		}
-		if err != nil {
-			utils.Logger.Error(fmt.Sprintf("unable to fetch latest speed data from redis , txid : %v", txid))
-			return nil, &mqtterror.MQTTPipelineError{
-				Code:    http.StatusInternalServerError,
-				Message: fmt.Sprintf("Unable to fetch latest speed data from redis, err %v", err.Error()),
-				Trace:   txid,
-			}
-		}
+	}
 
-		var data models.SpeedData
-		if err := json.Unmarshal([]byte(val), &data); err != nil {
-			utils.Logger.Error(fmt.Sprintf("unmarshalling error for redis data , txid : %v", txid))
-			return nil ,  &mqtterror.MQTTPipelineError{
-				Code:    http.StatusInternalServerError,
-				Message: fmt.Sprintf("error while unmarshalling the response from the redis, err %v", err.Error()),
-				Trace:   txid,
-			}
+	var data models.SpeedData
+	if err := json.Unmarshal([]byte(val), &data); err != nil {
+		utils.Logger.Error(fmt.Sprintf("unmarshalling error for redis data , txid : %v", txid))
+		return nil, &mqtterror.MQTTPipelineError{
+			Code:    http.StatusInternalServerError,
+			Message: fmt.Sprintf("error while unmarshalling the response from the redis, err %v", err.Error()),
+			Trace:   txid,
 		}
-		return data.Speed, nil
+	}
+	return data.Speed, nil
 }

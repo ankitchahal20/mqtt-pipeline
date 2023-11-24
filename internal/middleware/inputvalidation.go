@@ -89,7 +89,7 @@ func ValidateGetTokenEndointRequest() gin.HandlerFunc {
 			utils.RespondWithError(ctx, http.StatusBadRequest, err.Error())
 			return
 		}
-		
+
 		ctx.Next()
 	}
 }

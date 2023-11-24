@@ -67,7 +67,7 @@ func TestValidatePublishRequestInput(t *testing.T) {
 	e.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	// Case 2 : invalid speed 
+	// Case 2 : invalid speed
 	speed := -100
 	requestFields = models.SpeedData{
 		Speed: &speed,

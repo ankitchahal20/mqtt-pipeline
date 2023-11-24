@@ -10,7 +10,6 @@ import (
 	"github.com/mqtt-pipeline/internal/utils"
 )
 
-
 func Authorization() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		txid := ctx.Request.Header.Get(constants.TransactionID)
@@ -41,9 +40,9 @@ func Authorization() gin.HandlerFunc {
 					return
 				}
 			default: // something else went wrong
-			utils.Logger.Error(fmt.Sprintf("error while parsing token, txid : %v", txid))
-			utils.RespondWithError(ctx, http.StatusInternalServerError, "error while parsing token")
-			return
+				utils.Logger.Error(fmt.Sprintf("error while parsing token, txid : %v", txid))
+				utils.RespondWithError(ctx, http.StatusInternalServerError, "error while parsing token")
+				return
 			}
 		}
 		if !token.Valid {
