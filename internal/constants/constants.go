@@ -9,6 +9,7 @@ const (
 	Publish = "publish"
 
 	InvalidBody = "invalid body"
+	ContentType = "application/json"
 )
 
 var (

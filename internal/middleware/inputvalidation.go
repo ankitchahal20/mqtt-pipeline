@@ -35,7 +35,7 @@ func SetTransactionId() gin.HandlerFunc {
 func ValidatePublishEndpointRequest() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		txid := ctx.Request.Header.Get(constants.TransactionID)
-		//ctx.Set(constants.TransactionID, transactionID)
+
 		var speedData models.SpeedData
 		err := ctx.ShouldBindBodyWith(&speedData, binding.JSON)
 		if err != nil {
@@ -48,14 +48,14 @@ func ValidatePublishEndpointRequest() gin.HandlerFunc {
 		if speedData.Speed == nil {
 			utils.Logger.Error(fmt.Sprintf("request does not have speed field, txid : %v", txid))
 			err := errors.New("invalid request received")
-			ctx.JSON(http.StatusBadRequest, gin.H{"email not found": err.Error()})
+			utils.RespondWithError(ctx, http.StatusBadRequest, err.Error())
 			return
 		}
 
 		if *speedData.Speed < 0 || *speedData.Speed > 100 {
 			utils.Logger.Error(fmt.Sprintf("speed range is incorrect, it's range should be between 0 and 100, txid : %v", txid))
 			err := errors.New("speed should be range between 0 and 100")
-			ctx.JSON(http.StatusBadRequest, gin.H{"invalid speed": err.Error()})
+			utils.RespondWithError(ctx, http.StatusBadRequest, err.Error())
 			return
 		}
 
